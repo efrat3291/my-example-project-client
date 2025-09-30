@@ -1,49 +1,65 @@
-import React, { useEffect, useState } from 'react';
-import { getAllBooks } from './Services/booksService';
-import { login } from './Services/AuthService';
+import React, { useState } from 'react';
+import { getAllBooks, addBook } from './Services/booksService';
+import { login, logout, register } from './Services/AuthService';
 
 function App() {
   const [books, setBooks] = useState([]);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [token, setToken] = useState(localStorage.getItem('authToken'));
+  const [token, setToken] = useState(localStorage.getItem('authToken') || null);
+  const [newBook, setNewBook] = useState('');
 
   const handleLogin = async () => {
     try {
       const recievedToken = await login(username, password);
-      if (recievedToken) {
-        setToken(recievedToken);
-        localStorage.setItem('authToken', recievedToken);
-        alert('Login successful');
-      } else {
-        alert('Login failed');
-      }
-    }
-    catch (error) {
+      setToken(recievedToken);
+      alert('Login successful');
+    } catch {
       alert('Login failed');
     }
-  }
-  useEffect(() => {
+  };
 
+  const handleLogout = async () => {
+    await logout();
+    setToken(null);
+    setBooks([]);
+    alert('Logged out');
+  };
 
-    fetchBooks();
-  }, []);
-      const fetchBooks = async () => {
-      try {
-        const data = await getAllBooks();
-        setBooks(data);
-      } catch (error) {
-        console.error('Error fetching books:', error);
-      }
-    };
+  const handleRegister = async () => {
+    try {
+      await register(username, password);
+      alert('Registered successfully! Now login with your credentials.');
+    } catch {
+      alert('Register failed');
+    }
+  };
+
+  const fetchBooks = async () => {
+    try {
+      const data = await getAllBooks();
+      setBooks(data);
+    } catch {
+      alert('Failed to fetch books');
+    }
+  };
+
+  const handleAddBook = async () => {
+    try {
+      const book = { name: newBook };
+      await addBook(book);
+      setNewBook('');
+      fetchBooks();
+    } catch {
+      alert('Failed to add book');
+    }
+  };
 
   return (
     <div style={{ padding: '20px' }}>
       {!token && (
         <div>
-          <button onClick={fetchBooks()}>books</button>
-
-          <h2>Login</h2>
+          <h2>Login or Register</h2>
           <input
             type="text"
             placeholder="Username"
@@ -56,14 +72,35 @@ function App() {
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
-          <button onClick={handleLogin}>Login</button>
+          <div style={{ marginTop: '10px' }}>
+            <button onClick={handleLogin}>Login</button>
+            <button onClick={handleRegister} style={{ marginLeft: '10px' }}>Register</button>
+          </div>
         </div>
       )}
 
-      {token && <h2>Logged in! Your token: {token}</h2>}
+      {token && (
+        <div>
+          <h2>Welcome, {username}</h2>
+          <button onClick={handleLogout}>Logout</button>
+          <hr />
+          <button onClick={fetchBooks}>Get Books</button>
+          <ul>
+            {books.map(b => (
+              <li key={b.id}>{b.name}</li>
+            ))}
+          </ul>
+          <input
+            type="text"
+            placeholder="New book name"
+            value={newBook}
+            onChange={e => setNewBook(e.target.value)}
+          />
+          <button onClick={handleAddBook}>Add Book</button>
+        </div>
+      )}
     </div>
   );
-
 }
 
 export default App;
